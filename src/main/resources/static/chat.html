@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+      /* Estilos simples para el chat */
+      #chat {
+        width: 300px;
+        height: 400px;
+        border: 1px solid #ccc;
+        overflow-y: scroll;
+      }
+      #messageBox {
+        display: flex;
+        margin-top: 10px;
+      }
+      .mine {
+        text-align: right;
+        border-radius: 15px;
+        padding: 10px;
+      }
+      .else {
+        text-align: left;
+        border-radius: 15px;
+        padding: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/login.html">LOGIN</a>
+    <h2>Salas de Chat</h2>
+    <button onclick="connectToRoom('medico')">Sala Medicos</button>
+    <button onclick="connectToRoom('pabellon')">Sala Pabellón</button>
+    <button onclick="connectToRoom('examen')">Sala Examenes</button>
+    <button onclick="connectToRoom('auxiliar')">Sala Auxiliar</button>
+    <h3>Sala activa: <span id="nombreSala"></span></h3>
+    <div id="chat"></div>
+    <div id="messageBox">
+      <input
+        type="text"
+        id="messageInput"
+        placeholder="Escribe un mensaje..."
+      />
+      <button onclick="sendMessage('')">Enviar</button>
+      <button onclick="cleanChat()">Borrar</button>
+    </div>
+
+    <div id="userListContainer">
+    <h3>Usuarios Conectados</h3>
+    <div id="userList"></div>
+    </div>
+
+
+    <script>
+      let socket;
+      let mensajesData = [];
+      let currentRoom = "sendMessage";
+      let dest = ""
+      const username = sessionStorage.getItem("username");
+      if (!username) {
+        window.location.href = "/login.html"; // Redirige si no hay nombre de usuario
+      }
+      // Conectar al WebSocket
+      let stompClient = null;
+
+      function connectToRoom(room) {
+        if (stompClient) {
+          stompClient.disconnect();
+        }
+        dest = ""
+        let priv = false
+
+        document.getElementById("nombreSala").innerHTML = room;
+        cleanChat();
+
+        loadMessages(room);
+
+        currentRoom = room;
+        const socket = new SockJS("/chat-websocket"); // Conectar al endpoint fijo
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+          console.log("Conectado: " + frame);
+
+          //Conectarse al socket
+          stompClient.send("/app/connect", {}, username);
+
+          //Suscribirse a los usuarios conectados
+          stompClient.subscribe("/topic/users", function (message) {
+            updateUserList(JSON.parse(message.body));
+          });
+
+          // Suscribirse al canal de chat
+          stompClient.subscribe(`/topic/${room}`, function (messageOutput) {
+            let mess = JSON.parse(messageOutput.body);
+            console.log("Save");
+            saveMessage(mess, room);
+            showMessage(mess, priv);
+          });
+        });
+      }
+      function connectToPrivate(room, destiny) {
+        if (stompClient) {
+          stompClient.disconnect();
+        }
+        dest = destiny
+        let priv = true
+        //Cambiar el nombre de la sala al destinario
+        document.getElementById("nombreSala").innerHTML = destiny;
+        cleanChat();
+
+        loadMessages(room);
+
+        currentRoom = room;
+        const socket = new SockJS("/chat-websocket"); // Conectar al endpoint fijo
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+          console.log("Conectado: " + frame);
+
+          //Conectarse al socket
+          stompClient.send("/app/connect", {}, username);
+
+          //Suscribirse a los usuarios conectados
+          stompClient.subscribe("/topic/users", function (message) {
+            updateUserList(JSON.parse(message.body));
+          });
+
+          // Suscribirse al canal de chat
+          stompClient.subscribe(`/topic/${room}`, function (messageOutput) {
+            let mess = JSON.parse(messageOutput.body);
+            console.log("Save");
+            saveMessage(mess, room);
+            showMessage(mess, priv);
+          });
+        });
+      }
+
+      // Actualizar la lista de usuarios en la interfaz
+      function updateUserList(users) {
+        const userListElement = document.getElementById("userList");
+        userListElement.innerHTML = "";
+
+        users.forEach((user) => {
+          if(user == username) return
+          const userButton = document.createElement("button");
+          userButton.textContent = user;
+          userButton.className  = "userButton";
+          userButton.onclick = function(){
+            connectToPrivate("general", user);
+          }
+          userListElement.appendChild(userButton);
+        });
+      }
+
+      // Al cerrar la ventana, enviar mensaje de desconexión
+      window.onbeforeunload = function () {
+        if(dest != ""){
+          sendMessage("Me he desconectado de la sesión ");
+        }
+        if (stompClient) {
+          stompClient.send("/app/disconnect", {}, username);
+        }
+        stompClient.disconnect();
+      };
+      function connect() {
+        const socket = new SockJS("/chat-websocket");
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+          console.log("Conectado: " + frame);
+
+          // Suscribirse al canal de chat
+          stompClient.subscribe("/topic/public", function (messageOutput) {
+            showMessage(JSON.parse(messageOutput.body));
+          });
+        });
+      }
+
+      // Enviar mensaje
+      function sendMessage(mensaje) {
+        const date = new Date();
+        let tim = date.getHours() + ":" + date.getMinutes() + "/"  +date.getDay() + "/" + date.getMonth() + "/" + date.getFullYear()
+        
+        let destina = currentRoom
+        let messageContent = ""
+
+        if (dest != "") {
+         destina = dest 
+        }
+
+        messageContent = document.getElementById("messageInput").value.trim();
+
+        if(mensaje != ""){
+          messageContent = mensaje  
+        }
+        
+        if (messageContent && stompClient) {
+          const message = {
+            sender: username,
+            content: messageContent,
+            destinatary: destina,
+            timestamp: tim
+
+          };
+          stompClient.send(`/app/${currentRoom}`, {}, JSON.stringify(message));
+          document.getElementById("messageInput").value = "";
+        }
+      }
+
+      // Mostrar mensaje en la interfaz
+      function showMessage(message, priv) {
+        if(priv){
+          if(!(username == message.sender && dest == message.destinatary || username == message.destinatary && dest == message.sender)) return
+        }
+        const chat = document.getElementById("chat");
+        const messageElement = document.createElement("div");
+        messageElement.classList.add(
+          message.sender === username ? "mine" : "else"
+        );
+        if (message.sender != username) {
+          message.content = message.sender + ": " + message.content;
+        }
+        messageElement.textContent = message.content;
+        chat.appendChild(messageElement);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function cleanChat() {
+        //Limpiamos el chat
+        const chat = document.getElementById("chat");
+        while (chat.firstChild) {
+          chat.removeChild(chat.firstChild);
+        }
+      }
+
+      // Cargar mensajes desde el servidor
+      function loadMessages(room) {
+        fetch(`/loadMessages?room=${room}`)
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data);
+            mensajesData = data;
+            let priv = (currentRoom == "general")
+            data[room]?.forEach((message) => showMessage(message, priv));
+          })
+          .catch((error) => console.error("Error cargando mensajes:", error));
+      }
+
+      function loadNoPrint(room) {
+        fetch(`/loadMessages?room=${room}`)
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data);
+            mensajesData = data;
+          })
+          .catch((error) => console.error("Error cargando mensajes:", error));
+      }
+
+      // Guardar el mensaje en el servidor
+      async function saveMessage(message, room) {
+        loadNoPrint(room);
+        mensajesData[room].push(message);
+
+        fetch(`/saveMessage?room=${room}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(mensajesData),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Error guardando mensaje");
+            }
+          })
+          .catch((error) => console.error("Error:", error));
+      }
+
+      // Conectar al cargar la página
+      //connect();
+    </script>
+  </body>
+</html>

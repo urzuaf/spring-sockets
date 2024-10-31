@@ -1,0 +1,21 @@
+[
+    {
+        "name": "Cloud",
+        "password": "1234",
+        "rut":"12345678",
+        "role":"medico"
+    },
+    {
+        "name": "Barret",
+        "password": "1234",
+        "rut":"87654321",
+        "role":"admin"
+    },
+    {
+        "name": "Tifa",
+        "password": "1234",
+        "rut":"123487654",
+        "role":"administrativo"
+    }
+
+]
