@@ -1,0 +1,34 @@
+body{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    gap: 10px;
+}
+
+#userListContainer{
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 10px;
+    align-items: center;
+    gap: 10px;
+}
+
+.user{
+    padding: 20px;
+    border: 2px solid #323232;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px 0 rgba(26, 16, 16, 0.2), 0 6px 20px 0 rgba(26, 18, 18, 0.19);
+}
+
+.user > button{
+    padding: 4px 8px;
+    background-color: #272727;
+    color: white;
+    margin-top: 8px;
+}

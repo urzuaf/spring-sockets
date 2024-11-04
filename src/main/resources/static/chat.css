@@ -1,0 +1,147 @@
+a {
+  color: white;
+  text-decoration: none;
+  margin: auto auto;
+}
+
+#chat {
+  padding: 8px;
+  min-width: 400px;
+  overflow-y: scroll;
+  height: 500px;
+  width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#messageBox {
+  display: flex;
+  margin-top: 10px;
+  width: 100%;
+}
+
+#messageBox > input {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: #0f0f0f;
+  border: 2px solid #323223;
+  color: white;
+}
+
+#user-lists {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+}
+
+#connected-users,
+#disconnected-users {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+#connected-users > button {
+  border: 2px solid lightgreen;
+  box-shadow: 0 0 2px 0 white;
+  transition: all 0.3s ease;
+}
+
+.melement{
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    gap: 2px;
+}
+.eelement{
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 2px;
+}
+
+.mine,.else {
+  border-radius: 10px;
+  padding: 4px 12px;
+  background-color: #0f0f0f;
+  max-width: 70%;
+}
+
+.mine{
+  background-color: #3797F0;
+  text-align: right;
+}
+
+.else{
+  background-color: #242424;
+  text-align: left;
+}
+
+.from{
+    font-size: 11px;
+}
+
+#disconnected-users > button {
+  border: 2px dashed gray;
+  background-color: #0f0f0f;
+}
+#disconnected-users > button:hover {
+  border: 2px dashed #323232;
+  background-color: #121212;
+}
+
+.sala {
+  padding: 5px;
+  display: flex;
+}
+
+.cr {
+  margin: 5px 10px;
+  padding: 8px;
+  border-radius: 10px;
+  width: 650px;
+  background-color: #0f0f0f;
+  border: 2px solid #323232;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+button {
+  padding: 8px;
+  background-color: #272727;
+  border-radius: 5px;
+  border: none;
+  color: white;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+button:hover {
+  background-color: #323232;
+}
+
+.btns {
+  margin: 0 10px;
+}
+
+footer {
+  text-align: center;
+  width: 100%;
+  height: 300px;
+  background-color: black;
+  justify-content: center;
+  align-items: center;
+}
+
+.bold{
+  font-weight: 800;
+}
+
+.cursive{
+  font-style: italic;
+}

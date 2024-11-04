@@ -1,1 +1,19 @@
-{"medico":[{"sender":"gato","content":"gato: buenas","destinatary":"medico","timestamp":"00:00:00"},{"sender":"perro","content":"lel","destinatary":"medico","timestamp":"00:00:00"},{"sender":"gato","content":"lul","destinatary":"medico","timestamp":"00:00:00"}],"pabellon":[{"sender":"perro","content":"perro: Hola gato","destinatary":"pabellon","timestamp":"00:00:00"},{"sender":"gato","content":"gato: gato: Hola perro","destinatary":"pabellon","timestamp":"00:00:00"},{"sender":"perro","content":"como estas?","destinatary":"pabellon","timestamp":"00:00:00"},{"sender":"perro","content":"bien?","destinatary":"pabellon","timestamp":"00:00:00"},{"sender":"perro","content":"yo si :]","destinatary":"pabellon","timestamp":"00:00:00"}],"examen":[],"auxiliar":[],"general":[{"sender":"gato","content":"hola perro","destinatary":"perro","timestamp":"00:00:00"},{"sender":"perro","content":"perro: bien y tu?","destinatary":"gato","timestamp":"00:00:00"},{"sender":"gato","content":"bien igual, gracias","destinatary":"perro","timestamp":"00:00:00"},{"sender":"ardilla","content":"hola","destinatary":"gato","timestamp":"00:00:00"},{"sender":"ardilla","content":"como estas?","destinatary":"gato","timestamp":"00:00:00"},{"sender":"perro","content":"hola","destinatary":"ardilla","timestamp":"00:00:00"},{"sender":"perro","content":"saludos","destinatary":"gato","timestamp":"00:00:00"},{"sender":"gato","content":"hola","destinatary":"perro","timestamp":"00:00:00"},{"sender":"perro","content":"lel","destinatary":"gato","timestamp":"00:00:00"},{"sender":"perro","content":"Me he desconectado de la sesión ","destinatary":"gato","timestamp":"00:00:00"},{"sender":"perro","content":"buenas","destinatary":"ardilla","timestamp":"00:00:00"},{"sender":"ardilla","content":"saludsos","destinatary":"perro","timestamp":"00:00:00"},{"sender":"ardilla","content":"Me he desconectado de la sesión ","destinatary":"perro","timestamp":"00:00:00"}]}
+{
+  "medico": [
+    
+  ],
+  "urgente": [
+    {
+      "content": "mensaje Urgente 2",
+      "sender": "Barret",
+      "destinatary": "all",
+      "timestamp": "2024-11-03T21:18:53.892Z"
+    },
+    {
+      "content": "Mensaje urgente de prueba",
+      "sender": "Barret",
+      "destinatary": "all",
+      "timestamp": "2024-11-04T21:56:05.243Z"
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="global.css" />
+    <title>Registro de Usuarios</title>
+  </head>
+  <body>
+    <h2>Registro de Nuevo Usuario</h2>
+    <form id="registerForm">
+      <input type="text" id="name" placeholder="Nombre" required />
+      <input type="text" id="lastname" placeholder="Apellido" required />
+      <input type="text" id="rut" placeholder="RUT" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="password" placeholder="Contraseña" required />
+      <select id="role">
+        <option value="medico">Médico</option>
+        <option value="admin">Admin</option>
+        <option value="administrativo">Administrativo</option>
+      </select>
+      <button type="submit">Registrar Usuario</button>
+    </form>
+    <p id="end"></p>
+
+    <script>
+      document
+        .getElementById("registerForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const newUser = {
+            name: document.getElementById("name").value,
+            lastname: document.getElementById("lastname").value,
+            rut: document.getElementById("rut").value,
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value,
+            role: document.getElementById("role").value,
+          };
+
+          // Enviar el nuevo usuario al servidor
+          let usuarios
+          fetch("/loadUsers", {
+            method: "GET",
+          })
+            .then((response) => response.json())
+            .then((users) => {
+              usuarios = users
+              usuarios.push(newUser)
+              //envia una peticion a saveUser
+              fetch("/saveUser", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(usuarios),
+              }).then(()=>{
+                document.getElementById("end").innerHTML = "Usuario registrado exitosamente"
+              })
+          })
+
+         
+        });
+    </script>
+  </body>
+</html>

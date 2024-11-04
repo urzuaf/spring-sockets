@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="global.css" />
+    <link rel="stylesheet" href="admin.css" />
+    <title>Administración</title>
+  </head>
+  <body>
+    <h2>Panel de administración</h2>
+    <button style="width: fit-content" onclick="gotoRegister()">
+      Registrar nuevo usuario
+    </button>
+    <div id="userListContainer"></div>
+
+    <form id="formU">
+      <p>Enviar mensaje urgente</p>
+      <input id="umes" type="text" placeholder="Mensaje Urgente">
+      <button type="submit"> Enviar</button>
+    </form>
+
+    <script>
+
+      document.getElementById("formU").addEventListener("submit", function (e) {
+        e.preventDefault();
+        sendUrgentMessage();
+      });
+      async function sendUrgentMessage() {
+        const Message = document.getElementById("umes").value;
+        const urgentMessage = {
+          content: Message,
+          sender: sessionStorage.getItem("username"), 
+          destinatary: "all",
+          timestamp: new Date(),
+        }
+        let messages 
+        const resp = await fetch(`/loadMessages`)
+        const data = await resp.json()
+        messages = data;
+        messages["urgente"].push(urgentMessage)
+        const resp2 = await fetch("/saveMessage", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(messages),
+        });
+        if (resp2.ok) {
+          alert("Se ha enviado el mensaje urgente");
+        }
+        
+
+      }
+      function gotoRegister() {
+        window.location.href = "/register.html";
+      }
+
+      async function getUsers() {
+        const resp = await fetch("/loadUsers");
+        const users = await resp.json();
+        return users;
+      }
+      async function getMessages() {
+        const resp = await fetch("/loadMessages");
+        const users = await resp.json();
+        return users;
+      }
+      async function getConnections() {
+        const resp = await fetch("/loadConnections");
+        const users = await resp.json();
+        return users;
+      }
+
+      async function displayUsers() {
+        const users = await getUsers();
+        const connections = await getConnections();
+        const messages = await getMessages();
+
+        const messageCounts = countMessagesByChannel(messages);
+        const connectionTimes = calculateTotalConnectionTime(connections);
+
+        console.log("contador mensajes")
+        console.log(messageCounts)
+
+        console.log("connexiones")
+        console.log(connectionTimes)
+
+        const userListContainer = document.getElementById("userListContainer");
+        userListContainer.innerHTML = ""; // Limpiar el contenedor
+
+
+
+        users.forEach((user, index) => {
+          const userDiv = document.createElement("div");
+          userDiv.classList.add("user");
+          const userMessages = messageCounts[user.name] || {};
+          let connectionTime = (connectionTimes[user.name]/(1000*60)).toFixed(2);
+          if (connectionTime == "NaN") {
+            connectionTime = 0
+          }
+
+          userDiv.innerHTML = `
+                    <p>Nombre: ${user.name} ${user.lastname}</p>
+                    <p>RUT: ${user.rut}</p>
+                    <p>Rol: ${user.role}</p>
+                    <p>Email: ${user.email}</p>
+                    <button onclick="resetPassword(${index})">Restablecer Contraseña</button>
+                    <hr>
+                    <p>Mensajes a Medicos: ${userMessages["medico"] || 0}</p>
+                    <p>Mensajes a Pabellón: ${userMessages["pabellon"] || 0}</p>
+                    <p>Mensajes a Auxiliares: ${userMessages["auxiliar"] || 0}</p>
+                    <p>Mensajes a Examenes: ${userMessages["examen"] || 0}</p>
+                    <p>Mensajes privados : ${userMessages["general"] || 0}</p>
+                    <p>Tiempo Activo: ${connectionTime || 0} minutos</p>
+                `;
+          userListContainer.appendChild(userDiv);
+        });
+      }
+
+      // Función para restablecer la contraseña
+      async function resetPassword(index) {
+        const users = await getUsers();
+        //const user = users[index];
+        users[index].password = "1234";
+
+        let resp = await fetch("/saveUser", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(users),
+        });
+        if (resp.ok) {
+          alert("Se ha restablecido la contraseña");
+        }
+      }
+
+      function countMessagesByChannel(messages) {
+        const messageCounts = {};
+
+        for (const [channel, messagesList] of Object.entries(messages)) {
+          for (const msg of messagesList) {
+            const sender = msg.sender;
+            if (!messageCounts[sender]) {
+              messageCounts[sender] = {};
+            }
+            if (!messageCounts[sender][channel]) {
+              messageCounts[sender][channel] = 0;
+            }
+            messageCounts[sender][channel]++;
+          }
+        }
+
+        return messageCounts;
+      }
+
+      function calculateTotalConnectionTime(connections) {
+        const connectionTimes = {};
+
+        for (const conn of connections) {
+          const username = conn.username;
+          if (!connectionTimes[username]) {
+            connectionTimes[username] = 0;
+          }
+          connectionTimes[username] += conn.activeTime;
+        }
+
+        return connectionTimes;
+      }
+
+      // Mostrar usuarios al cargar la página
+      document.addEventListener("DOMContentLoaded", displayUsers);
+    </script>
+  </body>
+</html>

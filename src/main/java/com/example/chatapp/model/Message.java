@@ -1,6 +1,5 @@
 package com.example.chatapp.model;
 
-import java.sql.Time;
 
 public class Message {
     private String sender;
@@ -12,7 +11,7 @@ public class Message {
         this.sender = sender;
         this.content = content;
         this.destinatary = destinatary;
-        this.timestamp = Time.valueOf("00:00:00").toString();
+        this.timestamp = timestamp;
     }
 
     // Getters y Setters

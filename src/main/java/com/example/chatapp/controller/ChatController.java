@@ -22,6 +22,8 @@ import java.util.Set;
 public class ChatController {
 
     private static final String MESSAGES_FILE = "messages.json";
+    private static final String USERS_FILE = "users.json";
+    private static final String CONNECTIONS_FILE= "connections.json";
 
     @PostMapping("/saveMessage")
     public boolean saveMessage(@RequestBody String mensajes) {
@@ -31,7 +33,7 @@ public class ChatController {
             Files.write(Paths.get(MESSAGES_FILE), mensajes.getBytes(), StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
 
-            //System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
+            // System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -43,6 +45,68 @@ public class ChatController {
     public String loadMessages() {
         try {
             Path path = Paths.get(MESSAGES_FILE);
+
+            // Leer y devolver el contenido completo del archivo JSON como String
+            String jsonContent = Files.readString(path);
+            // System.out.println("Contenido del archivo JSON: " + jsonContent); //
+            // Verificar contenido
+
+            return jsonContent;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "{}"; // Devolver JSON vacío en caso de error
+        }
+    }
+    @GetMapping("/loadConnections")
+    public String loadConnections() {
+        try {
+            Path path = Paths.get(CONNECTIONS_FILE);
+
+            // Leer y devolver el contenido completo del archivo JSON como String
+            String jsonContent = Files.readString(path);
+            // System.out.println("Contenido del archivo JSON: " + jsonContent); //
+            // Verificar contenido
+
+            return jsonContent;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "{}"; // Devolver JSON vacío en caso de error
+        }
+    }
+
+    @PostMapping("/saveUser")
+    public boolean saveUser(@RequestBody String mensajes) {
+        try {
+            // Guardar el contenido en el archivo
+            Files.write(Paths.get(USERS_FILE), mensajes.getBytes(), StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
+
+            // System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false; // Retorna false si ocurre algún error
+        }
+    }
+    @PostMapping("/saveConnection")
+    public boolean saveConnection(@RequestBody String mensajes) {
+        try {
+            // Guardar el contenido en el archivo
+            Files.write(Paths.get(CONNECTIONS_FILE), mensajes.getBytes(), StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
+
+            // System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false; // Retorna false si ocurre algún error
+        }
+    }
+
+    @GetMapping("/loadUsers")
+    public String loadUsers() {
+        try {
+            Path path = Paths.get(USERS_FILE);
 
             // Leer y devolver el contenido completo del archivo JSON como String
             String jsonContent = Files.readString(path);
@@ -112,6 +176,7 @@ public class ChatController {
     public Message sendToAuxiliar(Message message) {
         return message;
     }
+
     @MessageMapping("/general")
     @SendTo("/topic/general")
     public Message sendToGeneral(Message message) {

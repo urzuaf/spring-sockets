@@ -1,24 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="global.css" />
     <title>Login</title>
-</head>
-<body>
-    <h2>Ingresa tu nombre para unirte al chat</h2>
+  </head>
+  <body>
+    <h2>Inicia sesión para unirte al chat</h2>
     <form id="loginForm">
-        <input type="text" id="username" placeholder="Nombre de usuario" required />
-        <button type="submit">Unirse</button>
+      <input type="text" id="rut" placeholder="RUT" required />
+      <input type="password" id="password" placeholder="Contraseña" required />
+      <button type="submit">Iniciar sesión</button>
     </form>
 
     <script>
-        document.getElementById("loginForm").addEventListener("submit", function (e) {
-            e.preventDefault();
-            const username = document.getElementById("username").value;
-            sessionStorage.setItem("username", username);
-            window.location.href = "/chat.html"; // Redirige a la página del chat
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const rut = document.getElementById("rut").value;
+          const password = document.getElementById("password").value;
+
+          // Llama al endpoint para obtener los usuarios
+          fetch("/loadUsers")
+            .then((response) => response.json())
+            .then((users) => {
+              // Verifica si el usuario existe con el RUT y contraseña proporcionados
+              const user = users.find(
+                (u) => u.rut === rut && u.password === password
+              );
+
+              if (user) {
+                // Guarda el nombre del usuario en sessionStorage y redirige al chat
+                sessionStorage.setItem("username", user.name);
+                sessionStorage.setItem("role", user.role);
+                console.log(user.password == "1234")
+                if(user.role != "admin" && user.password == "1234"){
+                  window.location.href = "/cambioclave.html"
+                }
+                else if (user.role === "admin") {
+                  window.location.href = "/admin.html"; // Redirige al formulario de registro
+                } else {
+                  window.location.href = "/chat.html"; // Redirige al chat
+                }
+              } else {
+                alert("RUT o contraseña incorrectos");
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert("Hubo un problema al iniciar sesión. Inténtalo de nuevo.");
+            });
         });
     </script>
-</body>
+  </body>
 </html>
