@@ -15,9 +15,9 @@
     <div class="sala">
       <div>
         <div class="btns">
-          <button onclick="connectToRoom('medico')">Sala Medicos</button>
-          <button onclick="connectToRoom('pabellon')">Sala Pabellón</button>
-          <button onclick="connectToRoom('examen')">Sala Examenes</button>
+          <button id="btn-medico" onclick="connectToRoom('medico')">Sala Medicos</button>
+          <button id="btn-pabellon" onclick="connectToRoom('pabellon')">Sala Pabellón</button>
+          <button id="btn-examen" onclick="connectToRoom('examen')">Sala Examenes</button>
           <button onclick="connectToRoom('auxiliar')">Sala Auxiliar</button>
         </div>
         <div class="cr">
@@ -137,20 +137,41 @@
 
       function updateUserList(connectedUsers) {
         // Paso 1: Obtener la lista completa de usuarios desde el servidor
+        if (sessionStorage.getItem("role") == "auxiliar") {
+          return;
+        }
         fetch("/loadUsers")
           .then((response) => response.json())
           .then((allUsers) => {
-            console.log("all users: ");
-            console.log(allUsers);
+            //console.log("all users: ");
+            //console.log(allUsers);
             // Paso 2: Filtrar usuarios no conectados
-            const disconnectedUsers = allUsers.filter(
-              (user) => !connectedUsers.includes(user.name)
-            );
+            const disconnectedUsers = allUsers.filter((user) => {
+              if(user.role == "admin") return false
+              if (sessionStorage.getItem("role") == "medico") {
+                if (!( user.role == "admin" || user.role == "auxiliar")) {
+                  return !connectedUsers.includes(user.name);
+                } else {
+                  return false;
+                }
+              } else {
+                return !connectedUsers.includes(user.name);
+              }
+            });
 
-            const rols = allUsers.filter((user) =>
-              connectedUsers.includes(user.name)
-            );
-            console.log(rols);
+            const rols = allUsers.filter((user) => {
+              if(user.role == "admin") return false
+              if (sessionStorage.getItem("role") == "medico") {
+                if (!(user.role == "admin" || user.role == "auxiliar")) {
+                  return connectedUsers.includes(user.name);
+                } else {
+                  return false;
+                }
+              } else {
+                return connectedUsers.includes(user.name);
+              }
+            });
+            //console.log(rols);
             // Paso 3: Renderizar usuarios conectados
             const connectedContainer =
               document.getElementById("connected-users");
@@ -236,6 +257,18 @@
 
         stompClient.disconnect();
       };
+
+      window.onload = function () {
+        const role = sessionStorage.getItem("role");
+
+        if (role === "auxiliar") {
+          // Ocultar todos los botones excepto "Sala Auxiliar"
+          document.getElementById("btn-medico").style.display = "none";
+          document.getElementById("btn-pabellon").style.display = "none";
+          document.getElementById("btn-examen").style.display = "none";
+        }
+      };
+
       function connect() {
         const socket = new SockJS("/chat-websocket");
         stompClient = Stomp.over(socket);
@@ -267,11 +300,11 @@
         console.log(new Date());
 
         let messageO = {
-          sender: username, 
+          sender: username,
           content: messageContent,
           destinatary: destina,
           timestamp: new Date(),
-        }
+        };
         console.log(messageO);
 
         if (messageContent && stompClient) {
@@ -297,14 +330,15 @@
         const messageContainer = document.createElement("div");
         const from = document.createElement("span");
         from.classList.add("from");
-        from.textContent = message.sender + " " + message.timestamp;
+        from.textContent =
+          message.sender + " - " + formatDate(message.timestamp);
         const messageContent = document.createElement("p");
         messageContent.classList.add("message");
         messageContent.textContent = message.content;
 
         let parts = message.content.split(" ");
         let command = parts[0];
-        let restOfMessage = parts.slice(1).join(" "); 
+        let restOfMessage = parts.slice(1).join(" ");
 
         if (command == "///") {
           messageContent.textContent = restOfMessage;
@@ -362,7 +396,7 @@
         fetch(`/loadMessages?room=${room}`)
           .then((response) => response.json())
           .then((data) => {
-            console.log(data);
+            //console.log(data);
             mensajesData = data;
           })
           .catch((error) => console.error("Error cargando mensajes:", error));
@@ -405,6 +439,20 @@
         await loadNoPrint("medico");
       }
 
+      function formatDate(isoString) {
+        const date = new Date(isoString);
+
+        // Opciones para formatear la fecha
+        const options = {
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        };
+
+        return date.toLocaleString("en-GB", options).replace(",", "");
+      }
       // Conectar al cargar la página
       //connect();
       connectToPrivate("general", sessionStorage.getItem("username"));
