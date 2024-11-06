@@ -9,6 +9,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -17,13 +18,18 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
 @RestController
 @Controller
 public class ChatController {
 
     private static final String MESSAGES_FILE = "messages.json";
     private static final String USERS_FILE = "users.json";
-    private static final String CONNECTIONS_FILE= "connections.json";
+    private static final String CONNECTIONS_FILE = "connections.json";
 
     @PostMapping("/saveMessage")
     public boolean saveMessage(@RequestBody String mensajes) {
@@ -52,11 +58,40 @@ public class ChatController {
             // Verificar contenido
 
             return jsonContent;
-        } catch (IOException e) {
+        }catch (NoSuchFileException e) {
+           return "no archivo de mensajes";
+        } 
+        catch (IOException e) {
             e.printStackTrace();
-            return "{}"; // Devolver JSON vacío en caso de error
+
+            // Si falla, hacer una solicitud HTTP al servidor remoto para obtener el archivo
+            try {
+                System.out.println("Leyendo de servidor externo");
+                String serverUrl = "http://34.176.232.182:8080/loadMessages";
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(serverUrl))
+                        .build();
+
+                // Realizar la solicitud GET
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() == 200) {
+                    // Si la respuesta es exitosa, devolver el contenido del archivo desde el
+                    // servidor
+                    return response.body();
+                } else {
+                    // Si la respuesta no es exitosa, devolver un JSON vacío
+                    return "{}";
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                return "{}"; // Devolver JSON vacío en caso de error también al intentar la petición HTTP
+            }
         }
+        
     }
+
     @GetMapping("/loadConnections")
     public String loadConnections() {
         try {
@@ -77,6 +112,13 @@ public class ChatController {
     @PostMapping("/saveUser")
     public boolean saveUser(@RequestBody String mensajes) {
         try {
+            Path path = Paths.get(USERS_FILE);
+
+            if (!Files.exists(path)) {
+                Files.createFile(path);
+                System.out.println("Archivo no existía, se ha creado: " + MESSAGES_FILE);
+            }
+
             // Guardar el contenido en el archivo
             Files.write(Paths.get(USERS_FILE), mensajes.getBytes(), StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
@@ -88,6 +130,7 @@ public class ChatController {
             return false; // Retorna false si ocurre algún error
         }
     }
+
     @PostMapping("/saveConnection")
     public boolean saveConnection(@RequestBody String mensajes) {
         try {
