@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="global.css" />
+  <link rel="stylesheet" href="chat.css" />
+  <title>Chat</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <style></style>
+</head>
+
+<body>
+  <span id="warning" style="width: 100%; background-color: red; color: white; padding: .8rem;display: none;">No hay
+    conexión a intenet</span>
+  <span id="warning2" style="width: 100%; background-color: red; color: white; padding: .8rem;display: none;">Problemas
+    con el servidor </span>
+  <h2>Salas de Chat</h2>
+  <div class="sala">
+    <div>
+      <div class="btns">
+        <button id="btn-medico" onclick="connectToRoom('medico')">Sala Medicos</button>
+        <button id="btn-pabellon" onclick="connectToRoom('pabellon')">Sala Pabellón</button>
+        <button id="btn-examen" onclick="connectToRoom('examen')">Sala Examenes</button>
+        <button onclick="connectToRoom('auxiliar')">Sala Auxiliar</button>
+      </div>
+      <div class="cr">
+        <h3>Sala activa: <span id="nombreSala"></span></h3>
+        <div id="chat"></div>
+        <div id="messageBox">
+          <input type="text" id="messageInput" placeholder="Escribe un mensaje..." />
+          <button id="sendb" onclick="sendMessage('')">Enviar</button>
+          <button onclick="cleanChat()">Limpiar</button>
+        </div>
+      </div>
+    </div>
+    <div id="user-lists">
+      <div id="connected-users"></div>
+      <div id="disconnected-users"></div>
+    </div>
+  </div>
+  <footer>
+    <a href="/index.html">desconectarse</a>
+  </footer>
+
+  <script>
+    let socket;
+    let mensajesData = [];
+    let currentRoom = "sendMessage";
+    let dest = "";
+    let online = true;
+    let serverUp = true;
+    let connectionTime = new Date();
+    const username = sessionStorage.getItem("username");
+    if (!username) {
+      window.location.href = "/login.html"; // Redirige si no hay nombre de usuario
+    }
+    // Conectar al WebSocket
+    let stompClient = null;
+
+    function connectToRoom(room) {
+      if (stompClient) {
+        stompClient.disconnect();
+      }
+
+      loginTime = new Date();
+      if (loginTime < connectionTime) {
+        connectionTime = loginTime;
+      }
+
+      dest = "";
+      let priv = false;
+
+      document.getElementById("nombreSala").innerHTML = room;
+      cleanChat();
+
+      if (!online || !serverUp) {
+        console.log("Cargando datos en memoria")
+        showMessageNoLoad(room)
+        return
+      }
+
+      loadMessages(room);
+
+      currentRoom = room;
+      const socket = new SockJS("/chat-websocket"); // Conectar al endpoint fijo
+      stompClient = Stomp.over(socket);
+
+      stompClient.connect({}, function (frame) {
+        console.log("Conectado: " + frame);
+
+        //Conectarse al socket
+        stompClient.send("/app/connect", {}, username);
+
+        //Suscribirse a los usuarios conectados
+        stompClient.subscribe("/topic/users", function (message) {
+          updateUserList(JSON.parse(message.body));
+        });
+
+        // Suscribirse al canal de chat
+        stompClient.subscribe(`/topic/${room}`, function (messageOutput) {
+          let mess = JSON.parse(messageOutput.body);
+          console.log("Save");
+          saveMessage(mess, room);
+          showMessage(mess, priv);
+        });
+      });
+
+    }
+    function connectToPrivate(room, destiny) {
+      if (stompClient) {
+        stompClient.disconnect();
+      }
+      dest = destiny;
+      let priv = true;
+      //Cambiar el nombre de la sala al destinario
+      document.getElementById("nombreSala").innerHTML = destiny;
+      cleanChat();
+
+      loadMessages(room);
+
+      currentRoom = room;
+      const socket = new SockJS("/chat-websocket"); // Conectar al endpoint fijo
+      stompClient = Stomp.over(socket);
+
+      stompClient.connect({}, function (frame) {
+        console.log("Conectado: " + frame);
+
+        //Conectarse al socket
+        stompClient.send("/app/connect", {}, username);
+
+        //Suscribirse a los usuarios conectados
+        stompClient.subscribe("/topic/users", function (message) {
+          updateUserList(JSON.parse(message.body));
+        });
+
+        // Suscribirse al canal de chat
+        stompClient.subscribe(`/topic/${room}`, function (messageOutput) {
+          let mess = JSON.parse(messageOutput.body);
+          console.log("Save");
+          saveMessage(mess, room);
+          showMessage(mess, priv);
+        });
+      });
+    }
+
+    function updateUserList(connectedUsers) {
+      // Paso 1: Obtener la lista completa de usuarios desde el servidor
+      if (sessionStorage.getItem("role") == "auxiliar") {
+        return;
+      }
+      fetch("/loadUsers")
+        .then((response) => response.json())
+        .then((allUsers) => {
+          //console.log("all users: ");
+          //console.log(allUsers);
+          // Paso 2: Filtrar usuarios no conectados
+          const disconnectedUsers = allUsers.filter((user) => {
+            if (user.role == "admin") return false
+            if (sessionStorage.getItem("role") == "medico") {
+              if (!(user.role == "admin" || user.role == "auxiliar")) {
+                return !connectedUsers.includes(user.name);
+              } else {
+                return false;
+              }
+            } else {
+              return !connectedUsers.includes(user.name);
+            }
+          });
+
+          const rols = allUsers.filter((user) => {
+            if (user.role == "admin") return false
+            if (sessionStorage.getItem("role") == "medico") {
+              if (!(user.role == "admin" || user.role == "auxiliar")) {
+                return connectedUsers.includes(user.name);
+              } else {
+                return false;
+              }
+            } else {
+              return connectedUsers.includes(user.name);
+            }
+          });
+          //console.log(rols);
+          // Paso 3: Renderizar usuarios conectados
+          const connectedContainer =
+            document.getElementById("connected-users");
+          connectedContainer.innerHTML = "<h3>Usuarios Conectados</h3>";
+          rols.forEach((user) => {
+            const userButton = document.createElement("button");
+            userButton.textContent = user.role + ": " + user.name;
+            userButton.onclick = () => connectToPrivate("general", user.name);
+            connectedContainer.appendChild(userButton);
+          });
+
+          // Paso 4: Renderizar usuarios no conectados
+          const disconnectedContainer =
+            document.getElementById("disconnected-users");
+          disconnectedContainer.innerHTML = "<h3>Usuarios No Conectados</h3>";
+          disconnectedUsers.forEach((user) => {
+            const userButton = document.createElement("button");
+            userButton.textContent = user.role + ": " + user.name;
+            userButton.onclick = () => connectToPrivate("general", user.name);
+            disconnectedContainer.appendChild(userButton);
+          });
+        })
+        .catch((error) =>
+          console.error("Error al obtener la lista de usuarios:", error)
+        );
+    }
+    // Actualizar la lista de usuarios en la interfaz
+    function updateUserList2(users) {
+      const userListElement = document.getElementById("userList");
+      userListElement.innerHTML = "";
+
+      users.forEach((user) => {
+        if (user == username) return;
+        const userButton = document.createElement("button");
+        userButton.textContent = user;
+        userButton.className = "userButton";
+        userButton.onclick = function () {
+          connectToPrivate("general", user);
+        };
+        userListElement.appendChild(userButton);
+      });
+    }
+
+    // Al cerrar la ventana, enviar mensaje de desconexión
+    window.onbeforeunload = async function () {
+      if (dest != "" && dest != username) {
+        sendMessage("Me he desconectado de la sesión ");
+      }
+      if (stompClient) {
+        stompClient.send("/app/disconnect", {}, username);
+      }
+
+      let logoutTime = new Date();
+      let activeTime = logoutTime - connectionTime;
+
+      let resp = await fetch("/loadConnections", {
+        method: "GET",
+      });
+
+      console.log(resp);
+
+      let connections = await resp.json();
+      console.log(connections);
+
+      let con = {
+        username: username,
+        connectionTime: connectionTime,
+        activeTime: activeTime,
+      };
+
+      connections.push(con);
+      console.log(connections);
+
+      let resp2 = await fetch("/saveConnection", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(connections),
+      });
+      console.log("resp2");
+      console.log(resp2);
+
+      stompClient.disconnect();
+    };
+
+    window.onload = function () {
+      const role = sessionStorage.getItem("role");
+
+      if (role === "auxiliar") {
+        // Ocultar todos los botones excepto "Sala Auxiliar"
+        document.getElementById("btn-medico").style.display = "none";
+        document.getElementById("btn-pabellon").style.display = "none";
+        document.getElementById("btn-examen").style.display = "none";
+      }
+    };
+
+    function connect() {
+      const socket = new SockJS("/chat-websocket");
+      stompClient = Stomp.over(socket);
+
+      stompClient.connect({}, function (frame) {
+        console.log("Conectado: " + frame);
+
+        // Suscribirse al canal de chat
+        stompClient.subscribe("/topic/public", function (messageOutput) {
+          showMessage(JSON.parse(messageOutput.body));
+        });
+      });
+    }
+
+    // Enviar mensaje
+    function sendMessage(mensaje) {
+      let destina = currentRoom;
+      let messageContent = "";
+
+      if (dest != "") {
+        destina = dest;
+      }
+
+      messageContent = document.getElementById("messageInput").value.trim();
+      if (mensaje != "") {
+        messageContent = mensaje;
+      }
+      console.log("fecha");
+      console.log(new Date());
+
+      let messageO = {
+        sender: username,
+        content: messageContent,
+        destinatary: destina,
+        timestamp: new Date(),
+      };
+      console.log(messageO);
+
+      if (messageContent && stompClient) {
+        stompClient.send(`/app/${currentRoom}`, {}, JSON.stringify(messageO));
+        document.getElementById("messageInput").value = "";
+      }
+    }
+
+    // Mostrar mensaje en la interfaz
+    function showMessage(message, priv) {
+      if (priv) {
+        if (
+          !(
+            (username == message.sender && dest == message.destinatary) ||
+            (username == message.destinatary && dest == message.sender)
+          )
+        )
+          return;
+      }
+
+      const chat = document.getElementById("chat");
+      const messageElement = document.createElement("div");
+      const messageContainer = document.createElement("div");
+      const from = document.createElement("span");
+      from.classList.add("from");
+      from.textContent =
+        message.sender + " - " + formatDate(message.timestamp);
+      const messageContent = document.createElement("p");
+      messageContent.classList.add("message");
+      messageContent.textContent = message.content;
+
+      let parts = message.content.split(" ");
+      let command = parts[0];
+      let restOfMessage = parts.slice(1).join(" ");
+
+      if (command == "///") {
+        messageContent.textContent = restOfMessage;
+        messageContent.classList.add("cursive");
+      }
+      if (command == "***") {
+        messageContent.textContent = restOfMessage;
+        messageContent.classList.add("bold");
+      }
+      if (esColorHexValido(command)) {
+        messageContent.textContent = restOfMessage;
+        messageContent.style.color = command;
+      }
+
+      messageContainer.appendChild(from);
+      messageContainer.appendChild(messageContent);
+      messageContainer.classList.add(
+        message.sender === username ? "mine" : "else"
+      );
+      messageElement.appendChild(messageContainer);
+      messageElement.classList.add(
+        message.sender === username ? "melement" : "eelement"
+      );
+      chat.appendChild(messageElement);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function esColorHexValido(color) {
+      const regex = /^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$/;
+      return regex.test(color);
+    }
+
+    function cleanChat() {
+      //Limpiamos el chat
+      const chat = document.getElementById("chat");
+      while (chat.firstChild) {
+        chat.removeChild(chat.firstChild);
+      }
+    }
+
+    // Cargar mensajes desde el servidor
+    function loadMessages(room) {
+      fetch(`/loadMessages?room=${room}`)
+        .then((response) => response.json())
+        .then((data) => {
+          console.log(data);
+          mensajesData = data;
+          let priv = currentRoom == "general";
+          data[room]?.forEach((message) => showMessage(message, priv));
+        })
+        .catch((error) => console.error("Error cargando mensajes:", error));
+    }
+
+    function loadNoPrint(room) {
+      fetch(`/loadMessages?room=${room}`)
+        .then((response) => response.json())
+        .then((data) => {
+          //console.log(data);
+          mensajesData = data;
+        })
+        .catch((error) => console.error("Error cargando mensajes:", error));
+    }
+
+    function showMessageNoLoad(room) {
+      let priv = currentRoom == "general";
+      let data = mensajesData
+      data[room]?.forEach((message) => showMessage(message, priv));
+    }
+
+    // Guardar el mensaje en el servidor
+    async function saveMessage(message, room) {
+      loadNoPrint(room);
+      mensajesData[room].push(message);
+
+      fetch(`/saveMessage?room=${room}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(mensajesData),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Error guardando mensaje");
+          }
+        })
+        .catch((error) => console.error("Error:", error));
+    }
+
+    async function loadUrgentes() {
+      resp = await fetch(`/loadMessages?room=urgente`);
+      data = await resp.json();
+
+      if (
+        data["urgente"][data["urgente"].length - 1].timestamp !=
+        mensajesData["urgente"][mensajesData["urgente"].length - 1].timestamp
+      ) {
+        alert(
+          data["urgente"][data["urgente"].length - 1].sender +
+          ": " +
+          data["urgente"][data["urgente"].length - 1].content
+        );
+      }
+      await loadNoPrint("medico");
+    }
+
+    function formatDate(isoString) {
+      const date = new Date(isoString);
+
+      // Opciones para formatear la fecha
+      const options = {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      };
+
+      return date.toLocaleString("en-GB", options).replace(",", "");
+    }
+
+    //Detectar cuando la página esta online
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Función para manejar el evento "online"
+    function handleOnline(label = "Tienes conexion a internet") {
+      console.log(label);
+      online = true
+      const boton = document.getElementById("sendb");
+      const warn = document.getElementById("warning");
+      boton.disabled = false
+      warn.style.display = "none"
+      //connectToPrivate("general", sessionStorage.getItem("username"));
+    }
+
+    // Función para manejar el evento "offline"
+    function handleOffline(label = "No tienes conexion a internet") {
+      console.log(label);
+      online = false
+      const boton = document.getElementById("sendb");
+      const warn = document.getElementById("warning");
+      boton.disabled = true
+      warn.style.display = "block"
+      warn.textContent = label
+
+    }
+
+    // Agregar los listeners
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    function checkServer() {
+      fetch(`/health`)
+        .then((response) => {
+          if (response.ok && !serverUp) {
+            handleServer("Servidor activo")
+          }
+        })
+        .catch((error) => handleServerDown("Problemas con el servidor"));
+    }
+
+    function handleServer(label = "Servidor activo") {
+      console.log(label);
+      const boton = document.getElementById("sendb");
+      boton.disabled = false
+      serverUp = true
+      const warn = document.getElementById("warning2");
+      warn.style.display = "none"
+
+      //connectToPrivate("general", sessionStorage.getItem("username"));
+    }
+
+    function handleServerDown(label = "Problemas con el servidor") {
+      console.log(label);
+      serverUp = false
+      const boton = document.getElementById("sendb");
+      boton.disabled = true
+      const warn = document.getElementById("warning2");
+      warn.style.display = "block"
+      warn.textContent = label
+    }
+
+    setInterval(() => {
+      checkServer()
+    }, 1000);
+
+    // Conectar al cargar la página
+    //connect();
+    connectToPrivate("general", sessionStorage.getItem("username"));
+    setInterval(loadUrgentes, 5000);
+  </script>
+</body>
+
+</html>
