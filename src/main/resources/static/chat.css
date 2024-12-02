@@ -121,7 +121,15 @@ button {
   font-weight: bold;
   transition: all 0.3s ease;
 }
-button:hover {
+
+button:disabled{
+  background-color: #424242;
+  opacity: .7;
+  font-weight: normal;
+  cursor: not-allowed;
+}
+
+button:hover:not(:disabled) {
   background-color: #323232;
 }
 

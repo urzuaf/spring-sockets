@@ -163,6 +163,11 @@ public class ChatController {
         }
     }
 
+    @GetMapping("/health")
+    public String healthCheck() {
+        return "ok";
+    }
+
     private final SimpMessagingTemplate messagingTemplate;
     private static final Set<String> connectedUsers = Collections.synchronizedSet(new HashSet<>());
 
