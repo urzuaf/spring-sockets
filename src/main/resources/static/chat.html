@@ -119,6 +119,12 @@
       document.getElementById("nombreSala").innerHTML = destiny;
       cleanChat();
 
+      if (!online || !serverUp) {
+        console.log("Cargando datos en memoria")
+        showMessageNoLoad(room)
+        return
+      }
+
       loadMessages(room);
 
       currentRoom = room;
