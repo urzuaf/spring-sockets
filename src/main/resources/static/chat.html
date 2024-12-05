@@ -399,7 +399,7 @@
     // Cargar mensajes desde el servidor
     function loadMessages(room) {
       fetch(`/loadMessages?room=${room}`)
-        .then((response) => response.json())
+        .then((response) => {console.log(response.body);  return response.json()})
         .then((data) => {
           console.log(data);
           mensajesData = data;
@@ -446,6 +446,7 @@
     }
 
     async function loadUrgentes() {
+      if(serverUp == false) return
       resp = await fetch(`/loadMessages?room=urgente`);
       data = await resp.json();
 

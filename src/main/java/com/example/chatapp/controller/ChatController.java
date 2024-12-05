@@ -23,6 +23,17 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.MediaType;
+
 @RestController
 @Controller
 public class ChatController {
@@ -31,17 +42,17 @@ public class ChatController {
     private static final String USERS_FILE = "users.json";
     private static final String CONNECTIONS_FILE = "connections.json";
 
+    private static final String BASE_URL = "http://34.176.108.55:8080/";
+    private static final String ALTERNATIVE_URL = "http://34.176.108.55:8080/";
+    private static final OkHttpClient client = new OkHttpClient();
+
     @PostMapping("/saveMessage")
     public boolean saveMessage(@RequestBody String mensajes) {
+        String urlToUse = isServerHealthy(BASE_URL) ? BASE_URL : ALTERNATIVE_URL;
         try {
-
-            // Guardar el contenido en el archivo
-            Files.write(Paths.get(MESSAGES_FILE), mensajes.getBytes(), StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-
-            // System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
+            saveFile(urlToUse + "messages/write", mensajes);
             return true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return false; // Retorna false si ocurre algún error
         }
@@ -49,50 +60,63 @@ public class ChatController {
 
     @GetMapping("/loadMessages")
     public String loadMessages() {
+        String urlToUse = isServerHealthy(BASE_URL) ? BASE_URL : ALTERNATIVE_URL;
         try {
-            Path path = Paths.get(MESSAGES_FILE);
-
-            // Leer y devolver el contenido completo del archivo JSON como String
-            String jsonContent = Files.readString(path);
-            // System.out.println("Contenido del archivo JSON: " + jsonContent); //
-            // Verificar contenido
-
-            return jsonContent;
-        }catch (NoSuchFileException e) {
-           return "no archivo de mensajes";
-        } 
-        catch (IOException e) {
-            e.printStackTrace();
-
-            // Si falla, hacer una solicitud HTTP al servidor remoto para obtener el archivo
-            try {
-                System.out.println("Leyendo de servidor externo");
-                String serverUrl = "http://34.176.232.182:8080/loadMessages";
-                HttpClient client = HttpClient.newHttpClient();
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(serverUrl))
-                        .build();
-
-                // Realizar la solicitud GET
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-                if (response.statusCode() == 200) {
-                    // Si la respuesta es exitosa, devolver el contenido del archivo desde el
-                    // servidor
-                    return response.body();
-                } else {
-                    // Si la respuesta no es exitosa, devolver un JSON vacío
-                    return "{}";
-                }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                return "{}"; // Devolver JSON vacío en caso de error también al intentar la petición HTTP
-            }
+            return getFile(urlToUse + "messages/read");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return "{}"; // Devolver JSON vacío en caso de error también al intentar la petición HTTP
         }
-        
+    }
+
+    @PostMapping("/saveConnection")
+    public boolean saveConnections(@RequestBody String mensajes) {
+        String urlToUse = isServerHealthy(BASE_URL) ? BASE_URL : ALTERNATIVE_URL;
+        try {
+            saveFile(urlToUse + "connections/write", mensajes);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false; // Retorna false si ocurre algún error
+        }
     }
 
     @GetMapping("/loadConnections")
+    public String loadConnections() {
+        String urlToUse = isServerHealthy(BASE_URL) ? BASE_URL : ALTERNATIVE_URL;
+        try {
+            return getFile(urlToUse + "connections/read");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return "{}"; // Devolver JSON vacío en caso de error también al intentar la petición HTTP
+        }
+    }
+
+        @PostMapping("/saveUser")
+    public boolean saveUser(@RequestBody String mensajes) {
+        String urlToUse = isServerHealthy(BASE_URL) ? BASE_URL : ALTERNATIVE_URL;
+        try {
+            saveFile(urlToUse + "users/write", mensajes);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false; // Retorna false si ocurre algún error
+        }
+    }
+
+    @GetMapping("/loadUsers")
+    public String loadUsers() {
+        String urlToUse = isServerHealthy(BASE_URL) ? BASE_URL : ALTERNATIVE_URL;
+        try {
+            return getFile(urlToUse + "users/read");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return "{}"; // Devolver JSON vacío en caso de error también al intentar la petición HTTP
+        }
+    }
+
+
+   /* @GetMapping("/loadConnections")
     public String loadConnections() {
         try {
             Path path = Paths.get(CONNECTIONS_FILE);
@@ -107,9 +131,12 @@ public class ChatController {
             e.printStackTrace();
             return "{}"; // Devolver JSON vacío en caso de error
         }
-    }
+}*/
 
-    @PostMapping("/saveUser")
+/*
+* 
+
+@PostMapping("/saveUser")
     public boolean saveUser(@RequestBody String mensajes) {
         try {
             Path path = Paths.get(USERS_FILE);
@@ -121,8 +148,8 @@ public class ChatController {
 
             // Guardar el contenido en el archivo
             Files.write(Paths.get(USERS_FILE), mensajes.getBytes(), StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-
+            StandardOpenOption.TRUNCATE_EXISTING);
+            
             // System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
             return true;
         } catch (IOException e) {
@@ -130,14 +157,17 @@ public class ChatController {
             return false; // Retorna false si ocurre algún error
         }
     }
+    */
 
+    /*
+     
     @PostMapping("/saveConnection")
     public boolean saveConnection(@RequestBody String mensajes) {
         try {
             // Guardar el contenido en el archivo
             Files.write(Paths.get(CONNECTIONS_FILE), mensajes.getBytes(), StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
-
+                    
             // System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
             return true;
         } catch (IOException e) {
@@ -145,7 +175,10 @@ public class ChatController {
             return false; // Retorna false si ocurre algún error
         }
     }
+    */
 
+    /* 
+    * 
     @GetMapping("/loadUsers")
     public String loadUsers() {
         try {
@@ -155,17 +188,63 @@ public class ChatController {
             String jsonContent = Files.readString(path);
             // System.out.println("Contenido del archivo JSON: " + jsonContent); //
             // Verificar contenido
-
+            
             return jsonContent;
         } catch (IOException e) {
             e.printStackTrace();
             return "{}"; // Devolver JSON vacío en caso de error
         }
     }
+    */
+
+    // Método para leer datos de un archivo en el servidor
+    public static String getFile(String endpoint) throws IOException {
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Error en la solicitud: " + response);
+            }
+            return response.body().string();
+        }
+    }
+
+    // Método para guardar datos en un archivo en el servidor
+    public static void saveFile(String endpoint, String jsonData) throws IOException {
+        okhttp3.RequestBody body = okhttp3.RequestBody.create(jsonData, MediaType.get("application/json"));
+
+        Request request = new Request.Builder()
+                .url(endpoint)
+                .post(body)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new IOException("Error en la solicitud: " + response);
+            }
+            System.out.println("Datos guardados exitosamente.");
+        }
+    }
+
+    private static boolean isServerHealthy(String url) {
+        Request request = new Request.Builder()
+                .url(url + "health")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            return response.isSuccessful();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false; // Si ocurre un error en la solicitud, asumimos que el servidor no está
+                          // disponible.
+        }
+    }
 
     @GetMapping("/health")
     public String healthCheck() {
-        return "ok";
+        return "OK";
     }
 
     private final SimpMessagingTemplate messagingTemplate;
