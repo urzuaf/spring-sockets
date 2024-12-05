@@ -33,6 +33,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @Controller
@@ -242,10 +246,24 @@ public class ChatController {
         }
     }
 
-    @GetMapping("/health")
+    /*@GetMapping("/health")
     public String healthCheck() {
         return "OK";
     }
+    */
+
+    @GetMapping("/health")
+public ResponseEntity<Map<String, Boolean>> healthCheck() {
+    if (isServerHealthy(BASE_URL)) {
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+    if (isServerHealthy(ALTERNATIVE_URL)) {
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                         .body(Map.of("ok", false));
+}
+
 
     private final SimpMessagingTemplate messagingTemplate;
     private static final Set<String> connectedUsers = Collections.synchronizedSet(new HashSet<>());

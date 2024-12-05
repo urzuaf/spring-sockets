@@ -51,6 +51,7 @@
     let currentRoom = "sendMessage";
     let dest = "";
     let online = true;
+    let checkingServer = false;
     let serverUp = true;
     let connectionTime = new Date();
     const username = sessionStorage.getItem("username");
@@ -509,15 +510,30 @@
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    function checkServer() {
-      fetch(`/health`)
+
+function checkServer() {
+    if (checkingServer) return;
+    checkingServer = true;
+
+    fetch(`/health`)
         .then((response) => {
-          if (response.ok && !serverUp) {
-            handleServer("Servidor activo")
-          }
+            checkingServer = false;
+            if (!response.ok) {
+                handleServerDown("Servidor de datos no responde correctamente");
+            }
+            return response.json(); // Parseamos la respuesta como JSON
         })
-        .catch((error) => handleServerDown("Problemas con el servidor"));
-    }
+        .then((data) => {
+            if (data.ok && !serverUp) { // Verificamos el valor de "ok"
+                handleServer("Servidor activo");
+            }
+        })
+        .catch((error) => {
+            checkingServer = false;
+            handleServerDown("Problemas con el servidor");
+        });
+}
+
 
     function handleServer(label = "Servidor activo") {
       console.log(label);
@@ -542,7 +558,7 @@
 
     setInterval(() => {
       checkServer()
-    }, 1000);
+    }, 3000);
 
     // Conectar al cargar la página
     //connect();
