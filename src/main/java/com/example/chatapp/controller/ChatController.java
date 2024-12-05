@@ -96,7 +96,7 @@ public class ChatController {
         }
     }
 
-        @PostMapping("/saveUser")
+    @PostMapping("/saveUser")
     public boolean saveUser(@RequestBody String mensajes) {
         String urlToUse = isServerHealthy(BASE_URL) ? BASE_URL : ALTERNATIVE_URL;
         try {
@@ -119,87 +119,90 @@ public class ChatController {
         }
     }
 
-
-   /* @GetMapping("/loadConnections")
-    public String loadConnections() {
-        try {
-            Path path = Paths.get(CONNECTIONS_FILE);
-
-            // Leer y devolver el contenido completo del archivo JSON como String
-            String jsonContent = Files.readString(path);
-            // System.out.println("Contenido del archivo JSON: " + jsonContent); //
-            // Verificar contenido
-
-            return jsonContent;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "{}"; // Devolver JSON vacío en caso de error
-        }
-}*/
-
-/*
-* 
-
-@PostMapping("/saveUser")
-    public boolean saveUser(@RequestBody String mensajes) {
-        try {
-            Path path = Paths.get(USERS_FILE);
-
-            if (!Files.exists(path)) {
-                Files.createFile(path);
-                System.out.println("Archivo no existía, se ha creado: " + MESSAGES_FILE);
-            }
-
-            // Guardar el contenido en el archivo
-            Files.write(Paths.get(USERS_FILE), mensajes.getBytes(), StandardOpenOption.CREATE,
-            StandardOpenOption.TRUNCATE_EXISTING);
-            
-            // System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false; // Retorna false si ocurre algún error
-        }
-    }
-    */
+    /*
+     * @GetMapping("/loadConnections")
+     * public String loadConnections() {
+     * try {
+     * Path path = Paths.get(CONNECTIONS_FILE);
+     * 
+     * // Leer y devolver el contenido completo del archivo JSON como String
+     * String jsonContent = Files.readString(path);
+     * // System.out.println("Contenido del archivo JSON: " + jsonContent); //
+     * // Verificar contenido
+     * 
+     * return jsonContent;
+     * } catch (IOException e) {
+     * e.printStackTrace();
+     * return "{}"; // Devolver JSON vacío en caso de error
+     * }
+     * }
+     */
 
     /*
-     
-    @PostMapping("/saveConnection")
-    public boolean saveConnection(@RequestBody String mensajes) {
-        try {
-            // Guardar el contenido en el archivo
-            Files.write(Paths.get(CONNECTIONS_FILE), mensajes.getBytes(), StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-                    
-            // System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false; // Retorna false si ocurre algún error
-        }
-    }
-    */
+     * 
+     * 
+     * @PostMapping("/saveUser")
+     * public boolean saveUser(@RequestBody String mensajes) {
+     * try {
+     * Path path = Paths.get(USERS_FILE);
+     * 
+     * if (!Files.exists(path)) {
+     * Files.createFile(path);
+     * System.out.println("Archivo no existía, se ha creado: " + MESSAGES_FILE);
+     * }
+     * 
+     * // Guardar el contenido en el archivo
+     * Files.write(Paths.get(USERS_FILE), mensajes.getBytes(),
+     * StandardOpenOption.CREATE,
+     * StandardOpenOption.TRUNCATE_EXISTING);
+     * 
+     * // System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
+     * return true;
+     * } catch (IOException e) {
+     * e.printStackTrace();
+     * return false; // Retorna false si ocurre algún error
+     * }
+     * }
+     */
 
-    /* 
-    * 
-    @GetMapping("/loadUsers")
-    public String loadUsers() {
-        try {
-            Path path = Paths.get(USERS_FILE);
+    /*
+     * 
+     * @PostMapping("/saveConnection")
+     * public boolean saveConnection(@RequestBody String mensajes) {
+     * try {
+     * // Guardar el contenido en el archivo
+     * Files.write(Paths.get(CONNECTIONS_FILE), mensajes.getBytes(),
+     * StandardOpenOption.CREATE,
+     * StandardOpenOption.TRUNCATE_EXISTING);
+     * 
+     * // System.out.println("Mensaje guardado exitosamente en " + MESSAGES_FILE);
+     * return true;
+     * } catch (IOException e) {
+     * e.printStackTrace();
+     * return false; // Retorna false si ocurre algún error
+     * }
+     * }
+     */
 
-            // Leer y devolver el contenido completo del archivo JSON como String
-            String jsonContent = Files.readString(path);
-            // System.out.println("Contenido del archivo JSON: " + jsonContent); //
-            // Verificar contenido
-            
-            return jsonContent;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "{}"; // Devolver JSON vacío en caso de error
-        }
-    }
-    */
+    /*
+     * 
+     * @GetMapping("/loadUsers")
+     * public String loadUsers() {
+     * try {
+     * Path path = Paths.get(USERS_FILE);
+     * 
+     * // Leer y devolver el contenido completo del archivo JSON como String
+     * String jsonContent = Files.readString(path);
+     * // System.out.println("Contenido del archivo JSON: " + jsonContent); //
+     * // Verificar contenido
+     * 
+     * return jsonContent;
+     * } catch (IOException e) {
+     * e.printStackTrace();
+     * return "{}"; // Devolver JSON vacío en caso de error
+     * }
+     * }
+     */
 
     // Método para leer datos de un archivo en el servidor
     public static String getFile(String endpoint) throws IOException {
@@ -246,24 +249,24 @@ public class ChatController {
         }
     }
 
-    /*@GetMapping("/health")
-    public String healthCheck() {
-        return "OK";
-    }
-    */
+    /*
+     * @GetMapping("/health")
+     * public String healthCheck() {
+     * return "OK";
+     * }
+     */
 
     @GetMapping("/health")
-public ResponseEntity<Map<String, Boolean>> healthCheck() {
-    if (isServerHealthy(BASE_URL)) {
-        return ResponseEntity.ok(Map.of("ok", true));
+    public ResponseEntity<Map<String, Boolean>> healthCheck() {
+        if (isServerHealthy(BASE_URL)) {
+            return ResponseEntity.ok(Map.of("ok", true));
+        }
+        if (isServerHealthy(ALTERNATIVE_URL)) {
+            return ResponseEntity.ok(Map.of("ok", true));
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("ok", false));
     }
-    if (isServerHealthy(ALTERNATIVE_URL)) {
-        return ResponseEntity.ok(Map.of("ok", true));
-    }
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                         .body(Map.of("ok", false));
-}
-
 
     private final SimpMessagingTemplate messagingTemplate;
     private static final Set<String> connectedUsers = Collections.synchronizedSet(new HashSet<>());
